@@ -31,13 +31,14 @@ A dataset of observations on a normally distributed phenotype, generated with me
 }}
   
 \details{
-Each family's phenotype scores were generated from a multivariate normal distribution (\command{mvrnorm} in package \emph{mvtnorm}) with a centroid defined conditional upon the family members' genotypes on the effect locus (rs7681769 in dataset \code{\link{geno}}), and a variance matrix with 1s on its diagonal and covariances (really, correlations) consistent with an additive heritability of 0.5 and a shared-environmentality of 0.2.
+Each family's phenotype scores were generated from a multivariate normal distribution (\command{mvrnorm} in package \emph{mvtnorm}) with a centroid defined conditional upon the family members' genotypes on the effect locus (rs7681769 in dataset \code{\link{geno}}), and a variance matrix with 1s on its diagonal and covariances (really, correlations) consistent with an additive heritability of 0.5 and a shared-environmentality of 0.2, but zero assortative mating.
 }
 
 \examples{
 data(pheno)
 str(pheno)
-qqnorm(pheno$Zscore); qqline(pheno$Zscore)  ##<--Normally distributed phenotype.
+qqnorm(pheno$Zscore[pheno$INDIV==1]) ##<--Normally distributed phenotype.
+qqline(pheno$Zscore[pheno$INDIV==1])
 ##Also see examples for functions fgls(), gls.batch(), and gls.batch.get().
 }
 

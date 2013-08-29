@@ -2,6 +2,7 @@ import(bdsmatrix)
 import(Matrix)
 export ("fgls",
         "gls.batch",
-	"gls.batch.get"
+	"gls.batch.get",
+        "FSV.frompedi"
 )
 

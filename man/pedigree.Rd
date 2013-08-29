@@ -15,43 +15,47 @@ A pedigree table for the same simulees as in dataset \code{\link{pheno}}.
     \item{\code{ID}}{\emph{Individual} ID.  Each subject in the dataset is uniquely identified by a value of \code{ID}.}
     \item{\code{PID}}{"Paternal ID."  Coded 0 for founders (parents, adoptees, and "independent observations.")}
     \item{\code{MID}}{"Maternal ID."  Coded 0 for founders (parents, adoptees, and "independent observations.")}
-    \item{\code{SEX}}{Binary indicator; a value of 1 indicates female sex.}
+    \item{\code{SEX}}{Coded 1 for male and 2 for female.}
   }}
 \details{
- Merely a pedigree table in a commonly used format.  Note that its column names are the default names that \code{\link{gls.batch}()} or \code{\link{gls.batch.get}()} assign to the pedigree file.  However, the only column that those two functions require is \code{ID}; see examples below.
+ Merely a pedigree table in a commonly used format.  Note that its column names are the default names that \code{\link{gls.batch}()} or \code{\link{gls.batch.get}()} assign to the pedigree file.  However, the only column that those two functions \emph{strictly} require is \code{ID}; see examples below.
 }
 \examples{
 data(pedigree)
 data(pheno)
 data(geno)
+data(map)
 
 foo <- gls.batch.get(
-  phenfile=pheno,
-  genfile=data.frame(t(geno)),
-  pedifile=pedigree, 
-  outfile="example_output.txt", 
-  covmtxfile.in=NULL,covmtxfile.out=paste(phen,"_cov_matrix.txt",sep=""),
-  phen="Zscore", covars = "IsFemale",
-  med = "rfgls", sizeLab = "OOPP", Mz = TRUE, Bo = TRUE, Ad = TRUE, Mix = TRUE,
-  indobs = TRUE, col.names = TRUE, pediheader = FALSE,
-  pedicolname=c("FAMID","ID","PID","MID","SEX"),
-  sep.phe = " ", sep.gen = " ", sep.ped = " ")
+  phenfile=pheno,genfile=data.frame(t(geno)),pedifile=pedigree,
+  covmtxfile.in=NULL,theta=NULL,snp.names=map[,2],
+  input.mode=1,
+  pediheader=FALSE,pedicolname=c("FAMID","ID","PID","MID","SEX"),
+  sep.phe=" ",sep.gen=" ",sep.ped=" ",
+  phen="Zscore",covars="IsFemale",med=c("UN","VC"),
+  outfile,col.names=TRUE,return.value=FALSE,
+  covmtxfile.out=NULL,
+  covmtxparams.out=NULL,
+  sizeLab=NULL,Mz=NULL,Bo=NULL,Ad=NULL,Mix=NULL,indobs=NULL)
 str(foo)
 
-##Also works:
+##Also works, since phenfile provides 'FTYPE' and 'INDIV',
+##and input.mode=1:
 pedigree2 <- pedigree
 pedigree2[,-2] <- NA    ##<--Change all but column 'ID' to NA.
 foo2 <- gls.batch.get(
-  phenfile=pheno,
-  genfile=data.frame(t(geno)),
-  pedifile=pedigree2,             ##<--Note change.
-  outfile="example_output.txt", 
-  covmtxfile.in=NULL,covmtxfile.out=paste(phen,"_cov_matrix.txt",sep=""),
-  phen="Zscore", covars = "IsFemale",
-  med = "rfgls", sizeLab = "OOPP", Mz = TRUE, Bo = TRUE, Ad = TRUE, Mix = TRUE,
-  indobs = TRUE, col.names = TRUE, pediheader = FALSE,
-  pedicolname=c("FAMID","ID","PID","MID","SEX"),
-  sep.phe = " ", sep.gen = " ", sep.ped = " ")
+  phenfile=pheno,genfile=data.frame(t(geno)),
+  pedifile=pedigree2,                       ##<--Note change.
+  covmtxfile.in=NULL,theta=NULL,snp.names=map[,2],
+  input.mode=1, ##<-- =2 or =3 would need more pedifile columns
+  pediheader=FALSE,pedicolname=c("FAMID","ID","PID","MID","SEX"),
+  sep.phe=" ",sep.gen=" ",sep.ped=" ",
+  phen="Zscore",covars="IsFemale",med=c("UN","VC"),
+  outfile,col.names=TRUE,return.value=FALSE,
+  covmtxfile.out=NULL,
+  covmtxparams.out=NULL,
+  sizeLab=NULL,Mz=NULL,Bo=NULL,Ad=NULL,Mix=NULL,indobs=NULL)
+str(foo2)
 
 }
 \keyword{datasets}

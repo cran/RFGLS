@@ -1,696 +1,355 @@
-#Functions written by Xiang Li (5/18/11), Saonli Basu (7/18/12), Rob Kirkpatrick (11/20/12).
-###############################################################################
-#c-Mz,b-Bio,a-Adopted,f-father,m-mother
-#
-##OOPP,famsize=4,famtype=Mz or BO or AD,parlength=8
-#
-#lab=c("ccff","ccf","ccm","cmf","cc","cm","cf","mf","c","m","f","INDPT") or 
-#c("bbff","bbf","bbm","bmf","bb","bm","bf","mf","b","m","f","INDPT") or c("aaff","aaf","aam","amf","aa","am","af","mf","a","m","f","INDPT")
-#theta=c(cor(P,P),cor(O,m),cor(O,f),cor(O,O),var(O),var(m),var(f),var(ind))
-.getblocks.Z1 <- function(theta,tlist,sizelist,parlength=8,indobs=T){
-if(indobs) {parlen=parlength;subtracter=c(1,3)} else {parlen=parlength-1;subtracter=c(0,2)}
-itheta=NULL
-itheta[1:(parlen-subtracter[2]-1)]=(1-exp(theta[1:(parlen-subtracter[2]-1)]))/(1+exp(theta[1:(parlen-subtracter[2]-1)]))
-itheta[(parlen-subtracter[2]):parlen]=exp(theta[(parlen-subtracter[2]):parlen])
-cormt = matrix(0,4,4)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[c(4,2,3)],1,itheta[2:3],1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1:4]=c(cormt[3,4],cormt[1,3],cormt[1,4],cormt[1,2])
+#Functions written by Rob Kirkpatrick (May 2013), with snippets from
+#Xiang Li (5/18/11) and Saonli Basu (7/18/12).
+#Function to make a list of the unique block matrices called for by the data, when med="UN":
+make.mtxlist <- function(tlist, ftype1, ftype2, ftype3, ftype5, spouses){
+  mtxlist <- list()
+  if("ccmf" %in% tlist){mtxlist$ftype1 <- ftype1}
+  if("bbmf" %in% tlist){mtxlist$ftype2 <- ftype2}
+  if("aamf" %in% tlist){mtxlist$ftype3 <- ftype3}
+  if("bamf" %in% tlist){mtxlist$ftype5 <- ftype5}
+  if("cmf" %in% tlist){mtxlist$ftype1.cmf <- ftype1[2:4,2:4]}
+  if("bmf" %in% tlist){mtxlist$ftype2.bmf <- ftype2[2:4,2:4]}
+  if("amf" %in% tlist){mtxlist$ftype3.amf <- ftype3[2:4,2:4]}
+  if("ccm" %in% tlist){mtxlist$ftype1.ccm <- ftype1[1:3,1:3]}
+  if("bbm" %in% tlist){mtxlist$ftype2.bbm <- ftype2[1:3,1:3]}
+  if("aam" %in% tlist){mtxlist$ftype3.aam <- ftype3[1:3,1:3]}
+  if("bam" %in% tlist){mtxlist$ftype5.bam <- ftype5[1:3,1:3]}
+  if("ccf" %in% tlist){mtxlist$ftype1.ccf <- ftype1[-3,-3]}
+  if("bbf" %in% tlist){mtxlist$ftype2.bbf <- ftype2[-3,-3]}
+  if("aaf" %in% tlist){mtxlist$ftype3.aaf <- ftype3[-3,-3]}
+  if("baf" %in% tlist){mtxlist$ftype5.baf <- ftype5[-3,-3]}
+  if("cm" %in% tlist){mtxlist$ftype1.cm <- ftype1[2:3,2:3]}
+  if("bm" %in% tlist){mtxlist$ftype2.bm <- ftype2[2:3,2:3]}
+  if("am" %in% tlist){mtxlist$ftype3.am <- ftype3[2:3,2:3]}
+  if("cf" %in% tlist){mtxlist$ftype1.cf <- ftype1[c(1,4),c(1,4)]}
+  if("bf" %in% tlist){mtxlist$ftype2.bf <- ftype2[c(1,4),c(1,4)]}
+  if("af" %in% tlist){mtxlist$ftype3.af <- ftype3[c(1,4),c(1,4)]}
+  if("mf" %in% tlist){mtxlist$spouses <- spouses}
+  if("cc" %in% tlist){mtxlist$ftype1.cc <- ftype1[1:2,1:2]}
+  if("bb" %in% tlist){mtxlist$ftype2.bb <- ftype2[1:2,1:2]}
+  if("aa" %in% tlist){mtxlist$ftype3.aa <- ftype3[1:2,1:2]}
+  if("ba" %in% tlist){mtxlist$ftype5.ba <- ftype5[1:2,1:2]}
+  return(mtxlist)
+} ##############################################################################################
 
-blocks=NULL;cnt = 1
-for(lab in tlist){
-if(lab=="ccmf" | lab=="bbmf" | lab=="aamf") {cors=c(1,itheta[c(4,2,3)],1,itheta[2:3],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="cmf" | lab=="bmf" | lab=="amf") {cors=c(1,itheta[2:3],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="ccm" | lab=="bbm" | lab=="aam") {cors=c(1,itheta[c(4,2)],1,itheta[2],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="ccf" | lab=="bbf" | lab=="aaf") {cors=c(1,itheta[c(4,3)],1,itheta[3],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="cm" | lab=="bm" | lab=="am") {cors=c(1,itheta[2],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="cf" | lab=="bf" | lab=="af") {cors=c(1,itheta[3],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="mf") {cors=c(1,itheta[1],1); vars=c(itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="cc" | lab=="aa" | lab=="bb") {cors=c(1,itheta[4],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]])} else
-if(lab=="a" | lab=="c" | lab=="b") {cors=c(1); vars=c(itheta[parlen-2-subtracter[1]])} else
-if(lab=="m") {cors=c(1); vars=c(itheta[parlen-1-subtracter[1]])} else
-if(lab=="f") {cors=c(1); vars=c(itheta[parlen-subtracter[1]])} else
-if(lab=="INDPT") {cors=c(1);vars=c(itheta[parlen])}
-corm = matrix(NA,sizelist[cnt],sizelist[cnt]); vcm = matrix(NA,sizelist[cnt],sizelist[cnt])
-corm[lower.tri(corm,diag=T)]=cors
+get1block <- function(famlab,mtxlist,theta){ #Function for making block values for a single family, when med="UN".
+  if(famlab=="ccmf"){ out <-  mtxlist$ftype1 ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bbmf"){ out <-  mtxlist$ftype2 ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="aamf"){ out <-  mtxlist$ftype3 ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bamf"){ out <-  mtxlist$ftype5 ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="cmf"){ out <-  mtxlist$ftype1.cmf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bmf"){ out <-  mtxlist$ftype2.bmf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="amf"){ out <-  mtxlist$ftype3.amf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="ccm"){ out <-  mtxlist$ftype1.ccm ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bbm"){ out <-  mtxlist$ftype2.bbm ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="aam"){ out <-  mtxlist$ftype3.aam ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bam"){ out <-  mtxlist$ftype5.bam ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="ccf"){ out <-  mtxlist$ftype1.ccf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bbf"){ out <-  mtxlist$ftype2.bbf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="aaf"){ out <-  mtxlist$ftype3.aaf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="baf"){ out <-  mtxlist$ftype5.baf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="cm"){ out <-  mtxlist$ftype1.cm ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bm"){ out <-  mtxlist$ftype2.bm ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="am"){ out <-  mtxlist$ftype3.am ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="cf"){ out <-  mtxlist$ftype1.cf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bf"){ out <-  mtxlist$ftype2.bf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="af"){ out <-  mtxlist$ftype3.af ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="mf"){ out <-  mtxlist$spouses; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="cc"){ out <-  mtxlist$ftype1.cc ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bb"){ out <-  mtxlist$ftype2.bb ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="aa"){ out <-  mtxlist$ftype3.aa ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="ba"){ out <-  mtxlist$ftype5.ba ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab %in% c("a","b","c")){ out <- theta[9]; return(out) }
+  else if(famlab=="m"){ out <- theta[10]; return(out) }
+  else if(famlab=="f"){ out <- theta[11]; return(out) }
+  else if(famlab=="INDPT"){ out <- theta[12]; return(out) }
+  else{stop(paste("Unrecognized family label '",famlab,".'",sep=""))}
+} ##############################################################################################
 
-for(rows in 1:sizelist[cnt]){
-   for(cols in 1:sizelist[cnt]){
-       vcm[rows,cols] = corm[rows,cols]*sqrt(vars[rows]*vars[cols])
-   }
-}
-blocks=c(blocks,vcm[lower.tri(vcm,diag=T)])
-cnt = cnt + 1
-} #end of lab
-parname=c("cor(P,P)","cor(O,m)","cor(O,f)","cor(O,O)","var(O)","var(m)","var(f)","var(ind)")
-return(list(blocks=blocks,parname=parname,itheta=itheta))
-}
-#
-##OOPP,famsize=4,famtype=Mixed or Ad+Mixed,parlength=10
-#
-#lab=c("bamf","bam","baf","bmf","amf","ba","bm","bf","am","af","mf","a","b","m","f","INDPT") or
-#theta=c(cor(P,P),cor(b,m),cor(b,f),cor(a,m),cor(a,f),cor(b,a),var(O),var(m),var(f),var(ind))
-.getblocks.Z2 <- function(theta,tlist,sizelist,parlength=10,indobs=T){
-if(indobs) {parlen=parlength;subtracter=c(1,3)} else {parlen=parlength-1;subtracter=c(0,2)}
-itheta=NULL
-itheta[1:(parlen-subtracter[2]-1)]=(1-exp(theta[1:(parlen-subtracter[2]-1)]))/(1+exp(theta[1:(parlen-subtracter[2]-1)]))
-itheta[(parlen-subtracter[2]):parlen]=exp(theta[(parlen-subtracter[2]):parlen])
-cormt = matrix(0,4,4)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[c(6,2,3)],1,itheta[4:5],1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1:6]=c(cormt[3,4],cormt[1,3],cormt[1,4],cormt[2,3],cormt[2,4],cormt[1,2])
+# (1) r.mf, (2) r.bm, (3) r.bf, (4) r.cc, (5) r.bb, (6) r.am, (7) r.af, (8) r.aa,
+# (9) v.o, (10) v.m, (11) v.f, (12), v.i
+#RMK May'13--function to get blocks when med="UN":
+getblocks <- function(theta,do.exp=FALSE,force.PD=FALSE,tlist,sizelist,pad=FALSE,inivar){
+  itheta <- theta
+  #RMK May'13: in Xiang's code, the parameters being optimized were actually the log variances and the Fisher-transformed
+  #correlations, and the first thing the getblocks functions did was transform them back to the original scale.  I've
+  #left an option to do that, but it is not used in any of my current code; the parameters are now always on their
+  #original scale.
+  if(do.exp){
+    itheta[1:8] <- (1-exp(itheta[1:8]))/(1+exp(itheta[1:8]))
+    itheta[9:12] <- exp(theta[9:12])
+  }
+  
+  #RMK May'13: If pad=TRUE, then any NAs in the parameter list are replaced with OLS values.  Those NAs correspond
+  #to dropped parameters.  The padding allows the user to drop parameters that are actually used but poorly identified.
+  #Leaving NAs in the blocks could mess up matrix operations later on (and possibly kill the entire job due to an error).
+  if(pad==TRUE & any(is.na(itheta))){itheta[which(is.na(itheta))] <- c(rep(0,8),rep(inivar,4))[which(is.na(itheta))]}
 
+  # (1) r.mf, (2) r.bm, (3) r.bf, (4) r.cc, (5) r.bb, (6) r.am, (7) r.af, (8) r.aa,
+  # (9) v.o, (10) v.m, (11) v.f, (12), v.i
+  #Make some correlation matrices:
+  ftype1 <- matrix(c(
+    1, itheta[4], itheta[2], itheta[3],
+    itheta[4], 1, itheta[2], itheta[3],
+    itheta[2], itheta[2], 1, itheta[1],
+    itheta[3], itheta[3], itheta[1], 1), nrow=4, byrow=T)
+  ftype2 <- matrix(c(
+    1, itheta[5], itheta[2], itheta[3],
+    itheta[5], 1, itheta[2], itheta[3],
+    itheta[2], itheta[2], 1, itheta[1],
+    itheta[3], itheta[3], itheta[1], 1), nrow=4, byrow=T)
+  ftype3 <- matrix(c(
+    1, itheta[8], itheta[6], itheta[7],
+    itheta[8], 1, itheta[6], itheta[7],
+    itheta[6], itheta[6], 1, itheta[1],
+    itheta[7], itheta[7], itheta[1], 1), nrow=4, byrow=T)
+  ftype5 <- matrix(c(
+    1, itheta[8], itheta[2], itheta[3],
+    itheta[8], 1, itheta[6], itheta[7],
+    itheta[2], itheta[6], 1, itheta[1],
+    itheta[3], itheta[7], itheta[1], 1), nrow=4, byrow=T) 
+  spouses <- matrix(c(
+    1,itheta[1],
+    itheta[1],1), nrow=2, ncol=2)
+  fam.sds <- sqrt(itheta[c(9,9,10,11)]) #<--Standard deviations
+  #Turn correlation matrices into covariance matrices:
+  ftype1 <- ftype1 * ( matrix(fam.sds,ncol=1) %*% matrix(fam.sds,nrow=1) )
+  ftype2 <- ftype2 * ( matrix(fam.sds,ncol=1) %*% matrix(fam.sds,nrow=1) )
+  ftype3 <- ftype3 * ( matrix(fam.sds,ncol=1) %*% matrix(fam.sds,nrow=1) )
+  ftype5 <- ftype5 * ( matrix(fam.sds,ncol=1) %*% matrix(fam.sds,nrow=1) )
+  spouses <- spouses * ( matrix(fam.sds[3:4],ncol=1) %*% matrix(fam.sds[3:4],nrow=1) )
+  
+  #Covariance matrices complete; now make a list of the unique such matrices which will constitute the blocks of
+  #the residual covariance matrix:
+  mtxlist <- make.mtxlist(tlist=unique(tlist), 
+    ftype1=ftype1,
+    ftype2=ftype2,
+    ftype3=ftype3,
+    ftype5=ftype5,
+    spouses=spouses)
+    
+  #RMK May'13--We want to check to make sure the residual covariance matrix is positive definite.  So, we check
+  #the eigenvalues of the unique blocks to be used that are larger than 1x1, 
+  #(the positiveness of the 1x1 blocks, i.e. the variances, is checked by the objective function, logfun):
+  PDcheck <- all(sapply(X=mtxlist,FUN=function(x){all(eigen(x,only.values=T)$values>2e-16)}))
+  
+  #RMK May'13: Force positive-definiteness, if doing so is called for; force.PD=TRUE is only used when fgls()'s 
+  #initial optimization attempt fails.
+  if(PDcheck==FALSE & force.PD==TRUE){
+    mtxlist <- sapply(X=mtxlist, USE.NAMES=TRUE, FUN=function(x){
+      if(min(eigen(x,only.values=T)$values)/max(eigen(x,only.values=T)$values)<1e-14){
+        return(nearPD(x,keepDiag=T,eig.tol=1e-14)$mat)
+      }
+      else{return(x)}
+    })
+    PDcheck <- TRUE #Because now, all block matrices to be used will be positive-definite.
+  }
+  
+  #Get the blocks for for the whole residual covariance matrix:
+  blocks <- unlist(sapply(X=tlist,FUN=get1block, mtxlist=mtxlist, theta=itheta)) #<--Apply get1block to tlist.
+  if(is.matrix(blocks)){blocks <- as.vector(blocks)}
+  return(list(blocks=blocks,itheta=itheta,PDcheck=PDcheck))
+} ##############################################################################################
 
-blocks=NULL;cnt = 1
-for(lab in tlist){
-if(lab=="bamf" | lab=="aamf") {cors=c(1,itheta[c(6,2,3)],1,itheta[4:5],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="bmf") {cors=c(1,itheta[2:3],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="baf") {cors=c(1,itheta[c(6,3)],1,itheta[5],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="aaf") {cors=c(1,itheta[c(6,5)],1,itheta[5],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="bam") {cors=c(1,itheta[c(6,2)],1,itheta[4],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="aam") {cors=c(1,itheta[c(6,4)],1,itheta[4],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="amf") {cors=c(1,itheta[c(4,5)],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="ba" | lab=="aa") {cors=c(1,itheta[6],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]])} else
-if(lab=="bm") {cors=c(1,itheta[2],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="bf") {cors=c(1,itheta[3],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="am") {cors=c(1,itheta[4],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="af") {cors=c(1,itheta[5],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="mf") {cors=c(1,itheta[1],1); vars=c(itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="b" | lab=="a") {cors=c(1); vars=c(itheta[parlen-2-subtracter[1]])} else
-if(lab=="m") {cors=c(1); vars=c(itheta[parlen-1-subtracter[1]])} else
-if(lab=="f") {cors=c(1); vars=c(itheta[parlen-subtracter[1]])} else
-if(lab=="INDPT") {cors=c(1);vars=c(itheta[parlen])}
-corm = matrix(NA,sizelist[cnt],sizelist[cnt]); vcm = matrix(NA,sizelist[cnt],sizelist[cnt])
-corm[lower.tri(corm,diag=T)]=cors
+#RMK May'13: The corresponding functions for when med="VC"--get1block.ACE and getblocks.ACE (below)--are basically just
+#adaptations of the above code for when med="UN".  The med="UN" case was harder to write, and got written first, and it
+#was simplest to just adapt it to the med="VC" case (and thus there is some parallelism between the cases 
+#in how the blocks are produced).
 
-for(rows in 1:sizelist[cnt]){
-    for(cols in 1:sizelist[cnt]){
-        vcm[rows,cols] = corm[rows,cols]*sqrt(vars[rows]*vars[cols])
+get1block.ACE <- function(famlab,mtxlist,V){ #<--Function to get 1 block, when med="VC".
+  if(famlab=="ccmf"){ out <-  mtxlist$ftype1 ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bbmf"){ out <-  mtxlist$ftype2 ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="aamf"){ out <-  mtxlist$ftype3 ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bamf"){ out <-  mtxlist$ftype5 ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="cmf"){ out <-  mtxlist$ftype1.cmf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bmf"){ out <-  mtxlist$ftype2.bmf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="amf"){ out <-  mtxlist$ftype3.amf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="ccm"){ out <-  mtxlist$ftype1.ccm ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bbm"){ out <-  mtxlist$ftype2.bbm ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="aam"){ out <-  mtxlist$ftype3.aam ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bam"){ out <-  mtxlist$ftype5.bam ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="ccf"){ out <-  mtxlist$ftype1.ccf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bbf"){ out <-  mtxlist$ftype2.bbf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="aaf"){ out <-  mtxlist$ftype3.aaf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="baf"){ out <-  mtxlist$ftype5.baf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="cm"){ out <-  mtxlist$ftype1.cm ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bm"){ out <-  mtxlist$ftype2.bm ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="am"){ out <-  mtxlist$ftype3.am ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="cf"){ out <-  mtxlist$ftype1.cf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bf"){ out <-  mtxlist$ftype2.bf ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="af"){ out <-  mtxlist$ftype3.af ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="mf"){ out <-  mtxlist$spouses; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="cc"){ out <-  mtxlist$ftype1.cc ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="bb"){ out <-  mtxlist$ftype2.bb ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="aa"){ out <-  mtxlist$ftype3.aa ; return(out[lower.tri(out,diag=T)]) }
+  else if(famlab=="ba"){ out <-  mtxlist$ftype5.ba ; return(out[lower.tri(out,diag=T)]) }
+  else if( nchar(famlab)==1 | famlab=="INDPT" ){ out <- V; return(out) }
+  else{stop(paste("Unrecognized family label '",famlab,".'",sep=""))}
+} ##############################################################################################
+
+#RMK May'13--function to get blocks when med="VC":
+getblocks.ACE <- function(theta,do.exp=FALSE,force.PD=FALSE,tlist,sizelist){
+  itheta <- theta
+  if(do.exp){itheta <- exp(theta)}
+  if(any(is.na(itheta))){itheta[which(is.na(itheta))] <- 0}
+  A <- itheta[1]
+  C <- itheta[2]
+  E <- itheta[3]
+  V <- sum(c(A,C,E),na.rm=T)
+  
+  #Make some matrices, on which the blocks on the whole residual covariance matrix will be based:
+  ftype1 <- matrix(c(
+    A+C+E, A+C, (0.5*A)+C, (0.5*A)+C,
+    A+C, A+C+E, (0.5*A)+C, (0.5*A)+C,
+    (0.5*A)+C, (0.5*A)+C, A+C+E, C,
+    (0.5*A)+C, (0.5*A)+C, C, A+C+E
+  ), nrow=4, byrow=T)
+  ftype2 <- matrix(c(
+    A+C+E, (0.5*A)+C, (0.5*A)+C, (0.5*A)+C,
+    (0.5*A)+C, A+C+E, (0.5*A)+C, (0.5*A)+C,
+    (0.5*A)+C, (0.5*A)+C, A+C+E, C,
+    (0.5*A)+C, (0.5*A)+C, C, A+C+E
+  ), nrow=4, byrow=T)
+  ftype3 <- matrix(c(
+    A+C+E, C, C, C,
+    C, A+C+E, C, C,
+    C, C, A+C+E, C,
+    C, C, C, A+C+E
+  ), nrow=4, byrow=T)
+  ftype5 <- matrix(c(
+    A+C+E, C, (0.5*A)+C, (0.5*A)+C,
+    C, A+C+E, C, C,
+    (0.5*A)+C, C, A+C+E, C,
+    (0.5*A)+C, C, C, A+C+E
+  ), nrow=4, byrow=T) 
+  spouses <- matrix(c(
+    A+C+E, C,
+    C, A+C+E
+  ), nrow=2, ncol=2)
+  
+  #Covariance matrices complete; now make a list of the unique such matrices which will constitute the blocks of
+  #the whole residual covariance matrix:
+  mtxlist <- make.mtxlist(tlist=unique(tlist), ftype1=ftype1, ftype2=ftype2, ftype3=ftype3, ftype5=ftype5, 
+                          spouses=spouses)
+  
+  #RMK May'13--it's very unlikely that the residual covariance matrix will ever be non-positive-definite when med="VC",
+  #but I'm including the check for, and conditional forcing of, positive-definiteness here; it's done the same as when
+  #med="UN":
+  PDcheck <- all(sapply(X=mtxlist,FUN=function(x){all(eigen(x,only.values=T)$values>2e-16)}))
+  if(PDcheck==FALSE & force.PD==TRUE){
+    mtxlist <- sapply(X=mtxlist, USE.NAMES=TRUE, FUN=function(x){
+      if(min(eigen(x,only.values=T)$values)/max(eigen(x,only.values=T)$values)<1e-14){
+        return(nearPD(x,keepDiag=T,eig.tol=1e-14)$mat)
+      }
+      else{return(x)}
+    })
+    PDcheck <- TRUE 
+  }
+    
+  #Get the blocks for for the full residual covariance matrix:
+  blocks <- unlist(sapply(X=tlist,FUN=get1block.ACE, mtxlist=mtxlist, V=V ))
+  if(is.matrix(blocks)){blocks <- as.vector(blocks)}
+  return(list(blocks=blocks,itheta=itheta,PDcheck=PDcheck)) 
+} ##############################################################################################
+
+#RMK May'13: logfun is the objective function.
+logfun <- function(theta, med, drop=NULL, do.exp=FALSE, force.PD=FALSE, X, Y, inivar, tlist, sizelist, id, 
+                   weights, na.rows){
+  
+  if(med=="VC"){
+    fulltheta <- rep(0,3)
+    #RMK May'13--how drops are handled when med="VC":
+    if(is.null(drop)){fulltheta <- theta}
+    else{fulltheta[-drop] <- theta}
+    
+    if( fulltheta[3]<=0 | sum(fulltheta)<=0 ){return(NA)}#<--Obj function value is NA for inadmissible param values.
+    
+    blocks <- getblocks.ACE(theta=fulltheta,do.exp=FALSE,force.PD=force.PD,tlist=tlist,sizelist=sizelist)
+    if(blocks$PDcheck==FALSE){return(NA)} #If matrix not positive-definite, objective function value is NA.
+    tkmat <- bdsmatrix(sizelist,blocks$blocks,dimnames=list(id,id))
+  }
+  else{ #"UN"
+    fulltheta <- rep(NA,12)
+    if(is.null(drop)){fulltheta <- theta}
+    else{
+      #RMK May'13--how drops are handled when med="UN":
+      if(any(drop<=8)){fulltheta[drop[drop<=8]] <- 0}
+      if(any(drop>8)){fulltheta[drop[drop>8]] <- inivar}
+      fulltheta[-drop] <- theta
     }
-}
-blocks=c(blocks,vcm[lower.tri(vcm,diag=T)])
-cnt = cnt + 1
-} #end of lab
-parname=c("cor(P,P)","cor(b,m)","cor(b,f)","cor(a,m)","cor(a,f)","cor(b,a)","var(O)","var(m)","var(f)","var(ind)")
-return(list(blocks=blocks,parname=parname,itheta=itheta))
-}
-#
-##OOPP,famsize=4,famtype=Mz+Bo,parlen=9
-#
-#lab=c("ccff","ccf","ccm","cmf","cc","cm","cf","mf","c","m","f","INDPT") or 
-#c("bbff","bbf","bbm","bmf","bb","bm","bf","mf","b","m","f","INDPT")
-#theta=c(cor(P,P),cor(O,m),cor(O,f),cor(c,c),cor(b,b),var(O),var(m),var(f),var(ind))
-.getblocks.Z3 <- function(theta,tlist,sizelist,parlength=9,indobs=T){
-if(indobs) {parlen=parlength;subtracter=c(1,3)} else {parlen=parlength-1;subtracter=c(0,2)}
-itheta=NULL
-itheta[1:(parlen-subtracter[2]-1)]=(1-exp(theta[1:(parlen-subtracter[2]-1)]))/(1+exp(theta[1:(parlen-subtracter[2]-1)]))
-itheta[(parlen-subtracter[2]):parlen]=exp(theta[(parlen-subtracter[2]):parlen])
-cormt = matrix(0,4,4)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[c(4,2,3)],1,itheta[2:3],1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1:4]=c(cormt[3,4],cormt[1,3],cormt[1,4],cormt[1,2])
+    if(any(abs(fulltheta[1:8])>=1)){return(NA)} #<--Obj function is NA for correlation outside [-1,1]
+    if(any(fulltheta[9:12]<=0)){return(NA)} #<--Obj function is NA for non-positive variance.
+    
+    blocks <- getblocks(theta=fulltheta,do.exp=FALSE,force.PD=force.PD,tlist=tlist,sizelist=sizelist,pad=TRUE,
+                        inivar=inivar)
+    if(blocks$PDcheck==FALSE){return(NA)} #If matrix not positive-definite, objective function value is NA.
+    tkmat <- bdsmatrix(sizelist,blocks$blocks,dimnames=list(id,id))
+  }
+  
+  if(length(na.rows)>0){tkmat <- tkmat[-na.rows,-na.rows]}
+  
+  list.vmat <- listbdsmatrix(tkmat,diag=T,id=F)
+  vmat1 <- sparseMatrix(list.vmat[,2],list.vmat[,1],x=list.vmat[,3],symmetric=T,dimnames=list(id,id))#,silent=TRUE)
+  vmat.Inv <- try(as(solve(vmat1,full=T),"sparseMatrix"),silent=TRUE)
+  if(class(vmat.Inv)=="try-error"){return(NA)}#<--Obj function value is NA if matrix is not invertible.
+  vmat.Inv <- forceSymmetric(vmat.Inv)
+  if(!is.null(weights)){ #<--Handling case weights.
+    vmat.Inv <- as(vmat.Inv %*% diag(weights,nrow=dim(vmat.Inv)[1]),"sparseMatrix")
+    vmat.Inv <- forceSymmetric(vmat.Inv)
+  }
+  gkmat <- try(as(chol(vmat.Inv),"sparseMatrix"),silent=TRUE)
+  if(class(gkmat)=="try-error"){return(NA)}#<--Obj function value is NA if matrix is not Cholesky factorable.
+  
+  Lambda <- 1/diag(gkmat)
+  newz <-gkmat%*%as.matrix(X)
+  newy <- gkmat%*%Y
+  lvd <- sum(log(Lambda))
+  lfit <- lm(newy[,1]~0+as.matrix(newz))
+  loglik <- sum(lfit$residuals^2)/2 + lvd
+  return(loglik)  
+} ##############################################################################################
 
-cormt = matrix(0,4,4)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[c(5,2,3)],1,itheta[2:3],1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[c(1:3,5)]=c(cormt[3,4],cormt[1,3],cormt[1,4],cormt[1,2])
-
-
-
-blocks=NULL;cnt = 1
-for(lab in tlist){
-if(lab=="ccmf") {cors=c(1,itheta[c(4,2,3)],1,itheta[2:3],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])
-	} else
-if(lab=="bbmf") {cors=c(1,itheta[c(5,2,3)],1,itheta[2:3],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="cmf" | lab=="bmf") {cors=c(1,itheta[2:3],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="ccm") {cors=c(1,itheta[c(4,2)],1,itheta[2],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="bbm") {cors=c(1,itheta[c(5,2)],1,itheta[2],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="ccf") {cors=c(1,itheta[c(4,3)],1,itheta[3],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="bbf") {cors=c(1,itheta[c(5,3)],1,itheta[3],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="cm" | lab=="bm") {cors=c(1,itheta[2],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="cf" | lab=="bf") {cors=c(1,itheta[3],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="mf") {cors=c(1,itheta[1],1); vars=c(itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="cc") {cors=c(1,itheta[4],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]])} else
-if(lab=="bb") {cors=c(1,itheta[5],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]])} else
-if(lab=="c" | lab=="b") {cors=c(1); vars=c(itheta[parlen-2-subtracter[1]])} else
-if(lab=="m") {cors=c(1); vars=c(itheta[parlen-1-subtracter[1]])} else
-if(lab=="f") {cors=c(1); vars=c(itheta[parlen-subtracter[1]])} else
-if(lab=="INDPT") {cors=c(1);vars=c(itheta[parlen])}
-corm = matrix(NA,sizelist[cnt],sizelist[cnt]); vcm = matrix(NA,sizelist[cnt],sizelist[cnt])
-corm[lower.tri(corm,diag=T)]=cors
-for(rows in 1:sizelist[cnt]){
-    for(cols in 1:sizelist[cnt]){
-        vcm[rows,cols] = corm[rows,cols]*sqrt(vars[rows]*vars[cols])
+#RMK May'13: optim.logfun does the optimization.
+optim.logfun <- function(start, drop, med, do.exp=FALSE, force.PD=FALSE, X, Y, inivar, tlist, sizelist, id, weights, 
+                         na.rows=na.rows, optim.method="BFGS", get.hessian, control){
+  
+  #How drops are handled:
+  if(is.null(drop)){pars <- start}
+  else{pars <- start[-drop]}
+  
+  if(optim.method=="L-BFGS-B"){
+    #RMK May'13: "L-BFGS-B" requires box constraints (lower and upper bounds) on parameters, 
+    #and will not tolerate NA or infinite objective-function values. The box constraints are chosen to try to keep
+    #the objective function from being evaluated on a non-PD matrix during computation of the finite-difference
+    #approximation to the gradient.
+    if(med=="VC"){              
+      lbound <- rep(0.0011,3) #<--Not allowing non-positive variance components
+      ubound <- rep(10*var(Y),3) #<--Arbitrary large (though finite) value for upper bound on variance components.
+      if(!is.null(drop)){
+        lbound <- lbound[-drop]
+        ubound <- ubound[-drop]
+      }
     }
-}
-blocks=c(blocks,vcm[lower.tri(vcm,diag=T)])
-cnt = cnt + 1
-} #end of lab
-parname=c("cor(P,P)","cor(O,m)","cor(O,f)","cor(c,c)","cor(b,b)","var(O)","var(m)","var(f)","var(ind)")
-return(list(blocks=blocks,parname=parname,itheta=itheta))
-}
-#
-##OOPP,famsize=4,famtype=Mz+Ad or Bo+Ad or Mz+Mixed or Bo+Mixed or Bo+Ad+Mixed or Mz+Ad+Mixed, i.e., Mz famtype and Bo famype are not appearing together,
-#but at least Ad or Mixed is present, parlength=11
-#
-#lab=c("ccff","ccf","ccm","cmf","cc","cm","cf","mf","c","m","f","INDPT") or 
-#c("bbff","bbf","bbm","bmf","bb","bm","bf","mf","b","m","f","INDPT") or c("aaff","aaf","aam","amf","aa","am","af","mf","a","m","f","INDPT") or
-#c("bamf","bam","baf","bmf","amf","ba","bm","bf","am","af","mf","a","b","m","f","INDPT")
-#theta=c(cor(m,f),cor(c/b,m),cor(c/b,f),cor(c/b,c/b),cor(a,m),cor(a,f),cor(a,a),var(O),var(m),var(f),var(ind))
-.getblocks.Z4 <- function(theta,tlist,sizelist,parlength=11,indobs=T){
-if(indobs) {parlen=parlength;subtracter=c(1,3)} else {parlen=parlength-1;subtracter=c(0,2)}
-itheta=NULL
-itheta[1:(parlen-subtracter[2]-1)]=(1-exp(theta[1:(parlen-subtracter[2]-1)]))/(1+exp(theta[1:(parlen-subtracter[2]-1)]))
-itheta[(parlen-subtracter[2]):parlen]=exp(theta[(parlen-subtracter[2]):parlen])
-
-cormt = matrix(0,4,4)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[c(4,2,3)],1,itheta[2:3],1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1:4]=c(cormt[3,4],cormt[1,3],cormt[1,4],cormt[1,2])
-
-cormt = matrix(0,4,4)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[c(7,5,6)],1,itheta[5:6],1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[c(1,5,6,7)]=c(cormt[3,4],cormt[1,3],cormt[1,4],cormt[1,2])
-
-cormt = matrix(0,4,4)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[c(7,2,3)],1,itheta[5:6],1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[c(1,2,3,5,6,7)]=c(cormt[3,4],cormt[1,3],cormt[1,4],cormt[2,3],cormt[2,4],cormt[1,2])
-
-blocks=NULL;cnt = 1
-for(lab in tlist){
-if(lab=="ccmf" | lab=="bbmf") {cors=c(1,itheta[c(4,2,3)],1,itheta[2:3],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="aamf") {cors=c(1,itheta[c(7,5,6)],1,itheta[5:6],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="bamf") {cors=c(1,itheta[c(7,2,3)],1,itheta[5:6],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="cmf" | lab=="bmf") {cors=c(1,itheta[2:3],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="amf") {cors=c(1,itheta[5:6],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="ccm" | lab=="bbm") {cors=c(1,itheta[c(4,2)],1,itheta[2],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="aam") {cors=c(1,itheta[c(7,5)],1,itheta[5],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="bam") {cors=c(1,itheta[c(7,2)],1,itheta[5],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="ccf" | lab=="bbf") {cors=c(1,itheta[c(4,3)],1,itheta[3],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="aaf") {cors=c(1,itheta[c(7,6)],1,itheta[6],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="baf") {cors=c(1,itheta[c(7,3)],1,itheta[6],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="cm" | lab=="bm") {cors=c(1,itheta[2],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="am") {cors=c(1,itheta[5],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="cf" | lab=="bf") {cors=c(1,itheta[3],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="af") {cors=c(1,itheta[6],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="mf") {cors=c(1,itheta[1],1); vars=c(itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="cc" | lab=="bb") {cors=c(1,itheta[4],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]])} else
-if(lab=="aa" | lab=="ba") {cors=c(1,itheta[7],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]])} else
-if(lab=="a" | lab=="c" | lab=="b") {cors=c(1); vars=c(itheta[parlen-2-subtracter[1]])} else
-if(lab=="m") {cors=c(1); vars=c(itheta[parlen-1-subtracter[1]])} else
-if(lab=="f") {cors=c(1); vars=c(itheta[parlen-subtracter[1]])} else
-if(lab=="INDPT") {cors=c(1);vars=c(itheta[parlen])}
-corm = matrix(NA,sizelist[cnt],sizelist[cnt]); vcm = matrix(NA,sizelist[cnt],sizelist[cnt])
-corm[lower.tri(corm,diag=T)]=cors
-
-for(rows in 1:sizelist[cnt]){
-    for(cols in 1:sizelist[cnt]){
-        vcm[rows,cols] = corm[rows,cols]*sqrt(vars[rows]*vars[cols])
+    else{
+      lbound <- c(rep(0.001,8), rep(0.0011,4)) #<--Not allowing negative correlations or non-positive variances.
+      ubound <- c(rep(0.9989,8),
+                  rep(10*var(Y),4))#<--Arbitrary large (though finite) value for upper bound on variances.
+      if(!is.null(drop)){
+        lbound <- lbound[-drop]
+        ubound <- ubound[-drop]
+      }
     }
-}
-blocks=c(blocks,vcm[lower.tri(vcm,diag=T)])
-cnt = cnt + 1
-} #end of lab
-parname=c("cor(m,f)","cor(c/b,m)","cor(c/b,f)","cor(c/b,c/b)","cor(a,m)","cor(a,f)","cor(a,a)","var(O)","var(m)","var(f)","var(ind)")
-return(list(blocks=blocks,parname=parname,itheta=itheta))
-}
-#
-##OOPP,famsize=4,famtype=Mz+Bo+Ad or Mz+Bo+Mixed or Mz+Bo+Ad+Mixed, i.e., Mz famtype and Bo famype are both present,
-#and at least Ad or Mixed is present, parlength=12
-#
-#lab=c("ccff","ccf","ccm","cmf","cc","cm","cf","mf","c","m","f","INDPT") or 
-#c("bbff","bbf","bbm","bmf","bb","bm","bf","mf","b","m","f","INDPT") or c("aaff","aaf","aam","amf","aa","am","af","mf","a","m","f","INDPT") or
-#c("bamf","bam","baf","bmf","amf","ba","bm","bf","am","af","mf","a","b","m","f","INDPT")
-#theta=c(cor(m,f),cor(c/b,m),cor(c/b,f),cor(c,c),cor(b,b),cor(a,m),cor(a,f),cor(a,a),var(O),var(m),var(f),var(ind))
-.getblocks.Z5 <- function(theta,tlist,sizelist,parlength=12,indobs=T){
-if(indobs) {parlen=parlength;subtracter=c(1,3)} else {parlen=parlength-1;subtracter=c(0,2)}
-itheta=NULL
-itheta[1:(parlen-subtracter[2]-1)]=(1-exp(theta[1:(parlen-subtracter[2]-1)]))/(1+exp(theta[1:(parlen-subtracter[2]-1)]))
-itheta[(parlen-subtracter[2]):parlen]=exp(theta[(parlen-subtracter[2]):parlen])
-
-cormt = matrix(0,4,4)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[c(4,2,3)],1,itheta[2:3],1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1:4]=c(cormt[3,4],cormt[1,3],cormt[1,4],cormt[1,2])
-
-cormt = matrix(0,4,4)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[c(5,2,3)],1,itheta[2:3],1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[c(1,2,3,5)]=c(cormt[3,4],cormt[1,3],cormt[1,4],cormt[1,2])
-
-cormt = matrix(0,4,4)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[c(8,6,7)],1,itheta[6:7],1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[c(1,6,7,8)]=c(cormt[3,4],cormt[1,3],cormt[1,4],cormt[1,2])
-
-cormt = matrix(0,4,4)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[c(8,2,3)],1,itheta[6:7],1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[c(1,2,3,6,7,8)]=c(cormt[3,4],cormt[1,3],cormt[1,4],cormt[2,3],cormt[2,4],cormt[1,2])
-
-blocks=NULL;cnt = 1
-for(lab in tlist){
-if(lab=="ccmf") {cors=c(1,itheta[c(4,2,3)],1,itheta[2:3],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="bbmf") {cors=c(1,itheta[c(5,2,3)],1,itheta[2:3],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="aamf") {cors=c(1,itheta[c(8,6,7)],1,itheta[6:7],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="bamf") {cors=c(1,itheta[c(8,2,3)],1,itheta[6:7],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="cmf" | lab=="bmf") {cors=c(1,itheta[2:3],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="amf") {cors=c(1,itheta[6:7],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="ccm") {cors=c(1,itheta[c(4,2)],1,itheta[2],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="bbm") {cors=c(1,itheta[c(5,2)],1,itheta[2],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="aam") {cors=c(1,itheta[c(8,6)],1,itheta[6],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="bam") {cors=c(1,itheta[c(8,2)],1,itheta[6],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="ccf") {cors=c(1,itheta[c(4,3)],1,itheta[3],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="bbf") {cors=c(1,itheta[c(5,3)],1,itheta[3],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="aaf") {cors=c(1,itheta[c(8,7)],1,itheta[7],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="baf") {cors=c(1,itheta[c(8,3)],1,itheta[7],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="cm" | lab=="bm") {cors=c(1,itheta[2],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="am") {cors=c(1,itheta[5],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="cf" | lab=="bf") {cors=c(1,itheta[3],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="af") {cors=c(1,itheta[6],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="mf") {cors=c(1,itheta[1],1); vars=c(itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="cc") {cors=c(1,itheta[4],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]])} else
-if(lab=="bb") {cors=c(1,itheta[5],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]])} else
-if(lab=="aa" | lab=="ba") {cors=c(1,itheta[8],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-2-subtracter[1]])} else
-if(lab=="a" | lab=="c" | lab=="b") {cors=c(1); vars=c(itheta[parlen-2-subtracter[1]])} else
-if(lab=="m") {cors=c(1); vars=c(itheta[parlen-1-subtracter[1]])} else
-if(lab=="f") {cors=c(1); vars=c(itheta[parlen-subtracter[1]])} else
-if(lab=="INDPT") {cors=c(1);vars=c(itheta[parlen])}
-corm = matrix(NA,sizelist[cnt],sizelist[cnt]); vcm = matrix(NA,sizelist[cnt],sizelist[cnt])
-corm[lower.tri(corm,diag=T)]=cors
-
-for(rows in 1:sizelist[cnt]){
-    for(cols in 1:sizelist[cnt]){
-        vcm[rows,cols] = corm[rows,cols]*sqrt(vars[rows]*vars[cols])
-    }
-}
-blocks=c(blocks,vcm[lower.tri(vcm,diag=T)])
-cnt = cnt + 1
-} #end of lab
-parname=c("cor(m,f)","cor(c/b,m)","cor(c/b,f)","cor(c,c)","cor(b,b)","cor(a,m)","cor(a,f)","cor(a,a)","var(O)","var(m)","var(f)","var(ind)")
-return(list(blocks=blocks,parname=parname,itheta=itheta))
-}
-
-#
-##OP,famsize=2,famtype=Mz or BO or AD or Mz+BO,parlen=4
-#
-#lab=c("cf","cm","f","m","c","INDPT") or c("bf","bm","f","m","b","INDPT") or c("af","am","f","m","a","INDPT")
-#theta=c(cor(P,O),var(O),var(P),var(ind))
-.getblocks.A1 <- function(theta,tlist,sizelist,parlength=4,indobs=T){
-if(indobs) {parlen=parlength;subtracter=c(1,2)} else {parlen=parlength-1;subtracter=c(0,1)}
-itheta=NULL
-itheta[1:(parlen-subtracter[2]-1)]=(1-exp(theta[1:(parlen-subtracter[2]-1)]))/(1+exp(theta[1:(parlen-subtracter[2]-1)]))
-itheta[(parlen-subtracter[2]):parlen]=exp(theta[(parlen-subtracter[2]):parlen])
-
-cormt = matrix(0,2,2)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1]=cormt[1,2]
-
-blocks=NULL;cnt = 1
-for(lab in tlist){
-if(lab=="cf" | lab=="cm" | lab=="bf" |  lab=="bm" | lab=="af" |  lab=="am") {cors=c(1,itheta[1],1); vars=c(itheta[parlen-subtracter[1]-1],itheta[parlen-subtracter[1]])} else
-if(lab=="c" | lab=="b" | lab=="a") {cors=c(1); vars=c(itheta[parlen-subtracter[1]-1])} else
-if(lab=="f" | lab=="m") {cors=c(1); vars=c(itheta[parlen-subtracter[1]])} else
-if(lab=="INDPT") {cors=c(1);vars=c(itheta[parlen])}
-corm = matrix(NA,sizelist[cnt],sizelist[cnt]); vcm = matrix(NA,sizelist[cnt],sizelist[cnt])
-corm[lower.tri(corm,diag=T)]=cors
-
-for(rows in 1:sizelist[cnt]){
-    for(cols in 1:sizelist[cnt]){
-        vcm[rows,cols] = corm[rows,cols]*sqrt(vars[rows]*vars[cols])
-    }
-}
-blocks=c(blocks,vcm[lower.tri(vcm,diag=T)])
-cnt = cnt + 1
-} #end of lab
-parname=c("cor(P,O)","var(O)","var(P)","var(ind)")
-return(list(blocks=blocks,parname=parname,itheta=itheta))
-}
-#
-##OP,famsize=2,famtype=Mixed, Mz+AD or Mz+Mixed or BO+AD or BO+Mixed or AD+Mixed or Mz+BO+AD or Mz+BO+Mixed or Mz+AD+Mixed or BO+AD+Mixed or Mz+BO+AD+Mixed, parlength=5
-#
-#lab=c("bf","bm","af","am","f","m","b","a","INDPT") or c("cf","cm","af","am","f","m","c","a","INDPT") or c("cf","cm","bf","bm","af","am","f","m","c","b","a","INDPT")
-#theta=c(cor(P,(Mz,BO)),cor(P,AD),var(O),var(P),var(ind))
-.getblocks.A2 <- function(theta,tlist,sizelist,parlength=5,indobs=T){
-if(indobs) {parlen=parlength;subtracter=c(1,2)} else {parlen=parlength-1;subtracter=c(0,1)}
-itheta=NULL
-itheta[1:(parlen-subtracter[2]-1)]=(1-exp(theta[1:(parlen-subtracter[2]-1)]))/(1+exp(theta[1:(parlen-subtracter[2]-1)]))
-itheta[(parlen-subtracter[2]):parlen]=exp(theta[(parlen-subtracter[2]):parlen])
-
-cormt = matrix(0,2,2)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1]=cormt[1,2]
-
-
-blocks=NULL;cnt = 1
-for(lab in tlist){
-if(lab=="cf" | lab=="cm" | lab=="bf" | lab=="bm") {cors=c(1,itheta[1],1); vars=c(itheta[parlen-subtracter[1]-1],itheta[parlen-subtracter[1]])} else
-if(lab=="af" | lab=="am") {cors=c(1,itheta[2],1); vars=c(itheta[parlen-subtracter[1]-1],itheta[parlen-subtracter[1]])} else
-if(lab=="c" | lab=="b" | lab=="a") {cors=c(1); vars=c(itheta[parlen-subtracter[1]-1])} else
-if(lab=="f" | lab=="m") {cors=c(1); vars=c(itheta[parlen-subtracter[1]])} else
-if(lab=="INDPT") {cors=c(1);vars=c(itheta[parlen])}
-corm = matrix(NA,sizelist[cnt],sizelist[cnt]); vcm = matrix(NA,sizelist[cnt],sizelist[cnt])
-corm[lower.tri(corm,diag=T)]=cors
-corm[upper.tri(corm,diag=T)]=cors
-#corm=corm+t(corm)-diag(corm)
-corm=nearPD(corm,keepDiag=T)$mat
-for(rows in 1:sizelist[cnt]){
-    for(cols in 1:sizelist[cnt]){
-        vcm[rows,cols] = corm[rows,cols]*sqrt(vars[rows]*vars[cols])
-    }
-}
-blocks=c(blocks,vcm[lower.tri(vcm,diag=T)])
-cnt = cnt + 1
-} #end of lab
-parname=c("cor(P,c/b)","cor(P,a)","var(O)","var(P)","var(ind)")
-return(list(blocks=blocks,parname=parname,itheta=itheta))
-}
-#
-##PP,famsize=2,famtype=any type,parlength(which includes the var(independent obs))=4
-#
-#lab=c("mf","f","m","INDPT") 
-#theta=c(cor(P,P),var(m),var(f),var(ind))
-.getblocks.E1 <- function(theta,tlist,sizelist,parlength=4,indobs=T){
-if(indobs) {parlen=parlength;subtracter=c(1,2)} else {parlen=parlength-1;subtracter=c(0,1)}
-itheta=NULL
-itheta[1:(parlen-subtracter[2]-1)]=(1-exp(theta[1:(parlen-subtracter[2]-1)]))/(1+exp(theta[1:(parlen-subtracter[2]-1)]))
-itheta[(parlen-subtracter[2]):parlen]=exp(theta[(parlen-subtracter[2]):parlen])
-
-cormt = matrix(0,2,2)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1]=cormt[1,2]
-
-blocks=NULL;cnt = 1
-for(lab in tlist){
-if(lab=="mf") {cors=c(1,itheta[1],1); vars=c(itheta[parlen-subtracter[1]-1],itheta[parlen-subtracter[1]])} else
-if(lab=="m") {cors=c(1); vars=c(itheta[parlen-subtracter[1]-1])} else
-if(lab=="f") {cors=c(1); vars=c(itheta[parlen-subtracter[1]])} else
-if(lab=="INDPT") {cors=c(1);vars=c(itheta[parlen])}
-corm = matrix(NA,sizelist[cnt],sizelist[cnt]); vcm = matrix(NA,sizelist[cnt],sizelist[cnt])
-corm[lower.tri(corm,diag=T)]=cors
-corm[upper.tri(corm,diag=T)]=cors
-#corm=corm+t(corm)-diag(corm)
-corm=nearPD(corm,keepDiag=T)$mat
-for(rows in 1:sizelist[cnt]){
-    for(cols in 1:sizelist[cnt]){
-        vcm[rows,cols] = corm[rows,cols]*sqrt(vars[rows]*vars[cols])
-    }
-}
-blocks=c(blocks,vcm[lower.tri(vcm,diag=T)])
-cnt = cnt + 1
-} #end of lab
-parname=c("cor(P,P)","var(m)","var(f)","var(ind)")
-return(list(blocks=blocks,parname=parname,itheta=itheta))
-}
-#
-##OO,famsize=2,famtype=Mz or BO or AD or Mixed or AD+Mixed,parlen=3
-#
-#lab=c("cc","c","INDPT") or c("bb","b","INDPT") or c("aa","a","INDPT") or c("ca","a","c","INDPT") or c("ba","b","a","INDPT") or c("ca","aa","a","c","INDPT") or c("ba","aa","a","b","INDPT")
-#theta=c(cor(O,O),var(O),var(ind))
-.getblocks.D1 <- function(theta,tlist,sizelist,parlength=3,indobs=T){
-if(indobs) {parlen=parlength;subtracter=c(1,1)} else {parlen=parlength-1;subtracter=c(0,0)}
-itheta=NULL
-itheta[1:(parlen-subtracter[2]-1)]=(1-exp(theta[1:(parlen-subtracter[2]-1)]))/(1+exp(theta[1:(parlen-subtracter[2]-1)]))
-itheta[(parlen-subtracter[2]):parlen]=exp(theta[(parlen-subtracter[2]):parlen])
-
-cormt = matrix(0,2,2)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1]=cormt[1,2]
-
-blocks=NULL;cnt = 1
-for(lab in tlist){
-if(lab=="cc" | lab=="bb" | lab=="aa" | lab=="ca" | lab=="ba") {cors=c(1,itheta[1],1); vars=c(itheta[parlen-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="c" | lab=="b" | lab=="a") {cors=c(1); vars=c(itheta[parlen-subtracter[1]])} else
-if(lab=="INDPT") {cors=c(1);vars=c(itheta[parlen])}
-corm = matrix(NA,sizelist[cnt],sizelist[cnt]); vcm = matrix(NA,sizelist[cnt],sizelist[cnt])
-corm[lower.tri(corm,diag=T)]=cors
-corm[upper.tri(corm,diag=T)]=cors
-#corm=corm+t(corm)-diag(corm)
-corm=nearPD(corm,keepDiag=T)$mat
-for(rows in 1:sizelist[cnt]){
-    for(cols in 1:sizelist[cnt]){
-        vcm[rows,cols] = corm[rows,cols]*sqrt(vars[rows]*vars[cols])
-    }
-}
-blocks=c(blocks,vcm[lower.tri(vcm,diag=T)])
-cnt = cnt + 1
-} #end of lab
-parname=c("cor(O,O)","var(O)","var(ind)")
-return(list(blocks=blocks,parname=parname,itheta=itheta))
-}
-#
-##OO,famsize=2,famtype=Mz+BO or MZ+A or MZ+Mixed or  MZ+A+Mixed,parlength=4
-#
-#lab=c("cc","bb","b","c","INDPT") or c("cc","aa","c","a","INDPT")  or c("cc","ca","ba","a","c","INDPT") or c("bb","ba","aa","a","b","INDPT")
-#theta=c(cor(c,c),cor(b/a, b/a),var(O),var(ind))
-.getblocks.D2 <- function(theta,tlist,sizelist,parlength=4,indobs=T){
-if(indobs) {parlen=parlength;subtracter=c(1,1)} else {parlen=parlength-1;subtracter=c(0,0)}
-itheta=NULL
-itheta[1:(parlen-subtracter[2]-1)]=(1-exp(theta[1:(parlen-subtracter[2]-1)]))/(1+exp(theta[1:(parlen-subtracter[2]-1)]))
-itheta[(parlen-subtracter[2]):parlen]=exp(theta[(parlen-subtracter[2]):parlen])
-
-cormt = matrix(0,2,2)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1]=cormt[1,2]
-
-cormt = matrix(0,2,2)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[2],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[2]=cormt[1,2]
-
-blocks=NULL;cnt = 1
-for(lab in tlist){
-if(lab=="cc") {cors=c(1,itheta[1],1); vars=c(itheta[parlen-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="bb" | lab=="aa" | lab=="ba") {cors=c(1,itheta[2],1); vars=c(itheta[parlen-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="c" | lab=="b" | lab=="a") {cors=c(1); vars=c(itheta[parlen-subtracter[1]])} else
-if(lab=="INDPT") {cors=c(1);vars=c(itheta[parlen])}
-corm = matrix(NA,sizelist[cnt],sizelist[cnt]); vcm = matrix(NA,sizelist[cnt],sizelist[cnt])
-corm[lower.tri(corm,diag=T)]=cors
-
-for(rows in 1:sizelist[cnt]){
-    for(cols in 1:sizelist[cnt]){
-        vcm[rows,cols] = corm[rows,cols]*sqrt(vars[rows]*vars[cols])
-    }
-}
-blocks=c(blocks,vcm[lower.tri(vcm,diag=T)])
-cnt = cnt + 1
-} #end of lab
-parname=c("cor(c,c)","cor(b/a,b/a)","var(O)","var(ind)")
-return(list(blocks=blocks,parname=parname,itheta=itheta))
-}
-#
-##OO,famsize=2,famtype=BO+AD or BO+Mixed or or BO+A+Mixed,parlength=4
-#
-#lab=c("bb","aa","a","b","INDPT")  or c("ba","aa","a","b","INDPT") or c("bb","ba","aa","a","b","INDPT")
-#theta=c(cor(b,b),cor(b,a),var(O),var(ind))
-.getblocks.D3 <- function(theta,tlist,sizelist,parlength=4,indobs=T){
-if(indobs) {parlen=parlength;subtracter=c(1,1)} else {parlen=parlength-1;subtracter=c(0,0)}
-itheta=NULL
-itheta[1:(parlen-subtracter[2]-1)]=(1-exp(theta[1:(parlen-subtracter[2]-1)]))/(1+exp(theta[1:(parlen-subtracter[2]-1)]))
-itheta[(parlen-subtracter[2]):parlen]=exp(theta[(parlen-subtracter[2]):parlen])
-
-cormt = matrix(0,2,2)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1]=cormt[1,2]
-
-cormt = matrix(0,2,2)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[2],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[2]=cormt[1,2]
-
-blocks=NULL;cnt = 1
-for(lab in tlist){
-if(lab=="bb") {cors=c(1,itheta[1],1); vars=c(itheta[parlen-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="aa" | lab=="ba") {cors=c(1,itheta[2],1); vars=c(itheta[parlen-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="b" | lab=="a") {cors=c(1); vars=c(itheta[parlen-subtracter[1]])} else
-if(lab=="INDPT") {cors=c(1);vars=c(itheta[parlen])}
-corm = matrix(NA,sizelist[cnt],sizelist[cnt]); vcm = matrix(NA,sizelist[cnt],sizelist[cnt])
-corm[lower.tri(corm,diag=T)]=cors
-corm[upper.tri(corm,diag=T)]=cors
-#corm=corm+t(corm)-diag(corm)
-corm=nearPD(corm,keepDiag=T)$mat
-for(rows in 1:sizelist[cnt]){
-    for(cols in 1:sizelist[cnt]){
-        vcm[rows,cols] = corm[rows,cols]*sqrt(vars[rows]*vars[cols])
-    }
-}
-blocks=c(blocks,vcm[lower.tri(vcm,diag=T)])
-cnt = cnt + 1
-} #end of lab
-parname=c("cor(b,b)","cor(b,a)","var(O)","var(ind)")
-return(list(blocks=blocks,parname=parname,itheta=itheta))
-}
-#
-##OO,famsize=2,famtype=Mz+BO+Mixed or Mz+BO+AD or Mz+BO+AD+Mixed,parlength=5
-#
-#lab=c("cc","bb","b","c","INDPT") or c("cc","aa","c","a","INDPT") or c("bb","aa","a","b","INDPT")  or c("ca","aa","a","c","INDPT") or c("ba","aa","a","b","INDPT") or c("cc","ca","aa","a","c","INDPT") or c("bb","ba","aa","a","b","INDPT")
-#theta=c(cor(c,c),cor(b,b),cor(b,a),var(O),var(ind))
-.getblocks.D4 <- function(theta,tlist,sizelist,parlength=5,indobs=T){
-if(indobs) {parlen=parlength;subtracter=c(1,1)} else {parlen=parlength-1;subtracter=c(0,0)}
-itheta=NULL
-itheta[1:(parlen-subtracter[2]-1)]=(1-exp(theta[1:(parlen-subtracter[2]-1)]))/(1+exp(theta[1:(parlen-subtracter[2]-1)]))
-itheta[(parlen-subtracter[2]):parlen]=exp(theta[(parlen-subtracter[2]):parlen])
-
-cormt = matrix(0,2,2)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1]=cormt[1,2]
-
-cormt = matrix(0,2,2)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[2],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[2]=cormt[1,2]
-
-cormt = matrix(0,2,2)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[3],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[3]=cormt[1,2]
-
-blocks=NULL;cnt = 1
-for(lab in tlist){
-if(lab=="cc") {cors=c(1,itheta[1],1); vars=c(itheta[parlen-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="bb") {cors=c(1,itheta[2],1); vars=c(itheta[parlen-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="aa" | lab=="ba" | lab=="ca") {cors=c(1,itheta[3],1); vars=c(itheta[parlen-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="c" | lab=="b" | lab=="a") {cors=c(1); vars=c(itheta[parlen-subtracter[1]])} else
-if(lab=="INDPT") {cors=c(1);vars=c(itheta[parlen])}
-corm = matrix(NA,sizelist[cnt],sizelist[cnt]); vcm = matrix(NA,sizelist[cnt],sizelist[cnt])
-corm[lower.tri(corm,diag=T)]=cors
-corm[upper.tri(corm,diag=T)]=cors
-#corm=corm+t(corm)-diag(corm)
-corm=nearPD(corm,keepDiag=T)$mat
-for(rows in 1:sizelist[cnt]){
-    for(cols in 1:sizelist[cnt]){
-        vcm[rows,cols] = corm[rows,cols]*sqrt(vars[rows]*vars[cols])
-    }
-}
-blocks=c(blocks,vcm[lower.tri(vcm,diag=T)])
-cnt = cnt + 1
-} #end of lab
-parname=c("cor(c,c)","cor(b,b)","cor(b,a)","var(O)","var(ind)")
-#if(indobs==F){parname <- parname[1:4]} #RMK 9-12-11
-return(list(blocks=blocks,parname=parname,itheta=itheta))
-}
-#
-##OPP,famsize=3,famtype=Mz or BO or AD or Mz+BO,parlength=7
-#
-#lab=c("cmf","cm","cf","m","f","c","INDPT") or c("bmf","bm","bf","m","f","b","INDPT") or c("amf","am","af","m","f","a","INDPT") or c("cmf","cm","cf","bmf","bf","bm","m","f","b","c","INDPT")
-#theta=c(cor(P,P),cor(c/b,m),cor(c/b,f),var(O),var(m),var(f),var(ind))
-.getblocks.B1 <- function(theta,tlist,sizelist,parlength=7,indobs=T){
-if(indobs) {parlen=parlength;subtracter=c(1,3)} else {parlen=parlength-1;subtracter=c(0,2)}
-itheta=NULL
-itheta[1:(parlen-subtracter[2]-1)]=(1-exp(theta[1:(parlen-subtracter[2]-1)]))/(1+exp(theta[1:(parlen-subtracter[2]-1)]))
-itheta[(parlen-subtracter[2]):parlen]=exp(theta[(parlen-subtracter[2]):parlen])
-
-cormt = matrix(0,3,3)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[2:3],1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1:3]=c(cormt[2,3],cormt[1,2],cormt[1,3])
-
-
-blocks=NULL;cnt = 1
-for(lab in tlist){
-if(lab=="cmf" | lab=="bmf" | lab=="amf") {cors=c(1,itheta[2:3],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="cm" | lab=="bm" | lab=="am") {cors=c(1,itheta[2],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="cf" | lab=="bf" | lab=="af") {cors=c(1,itheta[3],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="c" | lab=="b" | lab=="a") {cors=c(1); vars=c(itheta[parlen-2-subtracter[1]])} else
-if(lab=="m") {cors=c(1); vars=c(itheta[parlen-1-subtracter[1]])} else
-if(lab=="f") {cors=c(1); vars=c(itheta[parlen-subtracter[1]])} else
-if(lab=="INDPT") {cors=c(1);vars=c(itheta[parlen])}
-corm = matrix(NA,sizelist[cnt],sizelist[cnt]); vcm = matrix(NA,sizelist[cnt],sizelist[cnt])
-corm[lower.tri(corm,diag=T)]=cors
-if(nrow(corm)>1){corm[upper.tri(corm,F)] <- corm[lower.tri(corm,F)]}
-#corm=corm+t(corm)-diag(corm)
-corm=nearPD(corm,keepDiag=T)$mat
-for(rows in 1:sizelist[cnt]){
-    for(cols in 1:sizelist[cnt]){
-        vcm[rows,cols] = corm[rows,cols]*sqrt(vars[rows]*vars[cols])
-    }
-}
-blocks=c(blocks,vcm[lower.tri(vcm,diag=T)])
-cnt = cnt + 1
-} #end of lab
-parname=c("cor(P,P)","cor(c/b/a,m)","cor(c/b/a,f)","var(O)","var(m)","var(f)","var(ind)")
-return(list(blocks=blocks,parname=parname,itheta=itheta))
-}
-#
-##OPP,famsize=3,famtype=Mixed or Mz+AD or Mz+Mixed or BO+AD or BO+Mixed or AD+Mixed or Mz+BO+AD or MZ+BO+MIXED OR MZ+AD+MIXED OR BO+AD+MIXED OR MZ+BO+AD+MIXED,parlength=9
-#
-#lab=c("cmf","cm","cf","amf","am","af","m","f","a","c","INDPT") or c("bmf","bm","bf","amf","am","af","a","m","f","b","INDPT") or c("cmf","cm","cf","bmf","bf","bm","amf","am","af","m","f","a","b","c","INDPT")
-#theta=c(cor(f,m),cor((c,b),m),cor((c,b),f),cor(a,m),cor(a,f),var(O),var(m),var(f),var(ind))
-.getblocks.B2 <- function(theta,tlist,sizelist,parlength=9,indobs=T){
-if(indobs) {parlen=parlength;subtracter=c(1,3)} else {parlen=parlength-1;subtracter=c(0,2)}
-itheta=NULL
-itheta[1:(parlen-subtracter[2]-1)]=(1-exp(theta[1:(parlen-subtracter[2]-1)]))/(1+exp(theta[1:(parlen-subtracter[2]-1)]))
-itheta[(parlen-subtracter[2]):parlen]=exp(theta[(parlen-subtracter[2]):parlen])
-cormt = matrix(0,3,3)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[2:3],1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1:3]=c(cormt[2,3],cormt[1,2],cormt[1,3])
-
-cormt = matrix(0,3,3)
-cormt[lower.tri(cormt,diag=T)]=c(1,itheta[4:5],1,itheta[1],1)
-cormt=cormt+t(cormt)-diag(diag(cormt))
-cormt=nearPD(cormt,keepDiag=T)$mat
-itheta[1:3]=c(cormt[2,3],cormt[1,2],cormt[1,3])
-
-blocks=NULL;cnt = 1
-for(lab in tlist){
-if(lab=="cmf" | lab=="bmf") {cors=c(1,itheta[2:3],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="amf") {cors=c(1,itheta[4:5],1,itheta[1],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="cm" | lab=="bm") {cors=c(1,itheta[2],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="cf" | lab=="bf") {cors=c(1,itheta[3],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="am") {cors=c(1,itheta[4],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-1-subtracter[1]])} else
-if(lab=="af") {cors=c(1,itheta[5],1); vars=c(itheta[parlen-2-subtracter[1]],itheta[parlen-subtracter[1]])} else
-if(lab=="c" | lab=="b" | lab=="a") {cors=c(1); vars=c(itheta[parlen-2-subtracter[1]])} else
-if(lab=="m") {cors=c(1); vars=c(itheta[parlen-1-subtracter[1]])} else
-if(lab=="f") {cors=c(1); vars=c(itheta[parlen-subtracter[1]])} else
-if(lab=="INDPT") {cors=c(1);vars=c(itheta[parlen])}
-corm = matrix(NA,sizelist[cnt],sizelist[cnt]); vcm = matrix(NA,sizelist[cnt],sizelist[cnt])
-corm[lower.tri(corm,diag=T)]=cors
-if(nrow(corm)>1){corm[upper.tri(corm,F)] <- corm[lower.tri(corm,F)]}
-#corm=corm+t(corm)-diag(corm)
-corm=nearPD(corm,keepDiag=T)$mat
-for(rows in 1:sizelist[cnt]){
-    for(cols in 1:sizelist[cnt]){
-        vcm[rows,cols] = corm[rows,cols]*sqrt(vars[rows]*vars[cols])
-    }
-}
-blocks=c(blocks,vcm[lower.tri(vcm,diag=T)])
-cnt = cnt + 1
-} #end of lab
-parname=c("cor(f,m)","cor(c/b,m)","cor(c/b,f)","cor(a,m)","cor(a,f)","var(O)","var(m)","var(f)","var(ind)")
-return(list(blocks=blocks,parname=parname,itheta=itheta))
-}
-
+    nfit <- optim(par=pars,fn=logfun,method="L-BFGS-B",control=control,hessian=get.hessian,
+                  lower=lbound, upper=ubound,
+                  med=med,drop=drop,do.exp=do.exp,force.PD=force.PD, 
+                  X=X, Y=Y, inivar=inivar, tlist=tlist, sizelist=sizelist, id=id, weights=weights, na.rows=na.rows)
+    return(nfit)
+  }
+  
+  else{
+    nfit <- optim(par=pars,fn=logfun,method=optim.method,control=control,hessian=get.hessian,
+                  med=med,drop=drop,do.exp=do.exp,force.PD=force.PD,
+                  X=X, Y=Y, inivar=inivar, tlist=tlist, sizelist=sizelist, id=id, weights=weights, na.rows=na.rows)
+    return(nfit)
+  }
+} ##############################################################################################

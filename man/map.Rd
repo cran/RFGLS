@@ -5,7 +5,7 @@
  SNP "map" file
 }
 \description{
-A table of information about the 10 SNPs in dataset \code{\link{geno}}, in a format reminiscent of a plink binary map (.bim) file. 
+A table of information about the 10 SNPs in dataset \code{\link{geno}}, in a format reminiscent of a PLINK binary map (.bim) file. 
 }
 \usage{data(map)}
 \format{
